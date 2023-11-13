@@ -169,9 +169,9 @@ void MainWindow::handleKeyPress(QKeyEvent *event)
 {
         QString pressedText = event->text();
         QString closingBracket = "";
-        if (pressedText == "{") closingBracket = "{}";
-        else if (pressedText == "(") closingBracket = "()";
-        else if (pressedText == "[") closingBracket = "[]";
+        if (pressedText == "{") closingBracket = "}";
+        else if (pressedText == "(") closingBracket = ")";
+        else if (pressedText == "[") closingBracket = "]";
         //event->text() = closingBracket;
 //        QTextCursor cursor = customTextEdit->textCursor();
 //        int currentPos = cursor.position();
@@ -188,11 +188,13 @@ void MainWindow::handleKeyPress(QKeyEvent *event)
 //        customTextEdit->setTextCursor(cursor);
 
         if (!closingBracket.isEmpty()) {
+//            int cursorPosition = customTextEdit->textCursor().position();
+            qDebug() << pressedText + closingBracket << '\n';
+            customTextEdit->textCursor().insertText(closingBracket);
+            customTextEdit->moveCursor(QTextCursor::Left);
 
-            int cursorPosition = customTextEdit->textCursor().position();
-            customTextEdit->insertPlainText(pressedText + closingBracket);
-            customTextEdit->setTextCursor(QTextCursor(customTextEdit->document()->find(closingBracket,cursorPosition)));
-            event->accept();
+//            customTextEdit->setTextCursor(QTextCursor(customTextEdit->document()->find(closingBracket,cursorPosition)));
+//            event->accept();
         }
 //        cursor.select(QTextCursor::WordUnderCursor);
 //        cursor.insertText(closingBracket);
@@ -376,10 +378,10 @@ void MainWindow::on_actionFind_triggered()
         }
 
         else if(dialogue->getReplace()) {
-            QString text_to_be_replaced = customTextEdit->toHtml();
+            QString text_to_be_replaced = customTextEdit->toPlainText();
             text_to_be_replaced = text_to_be_replaced.replace(
                 dialogue->get_find_text(), dialogue->get_replace_text());
-            customTextEdit->setHtml(text_to_be_replaced);
+            customTextEdit->setPlainText(text_to_be_replaced);
             flag = true;
         }
         cursor.endEditBlock();
