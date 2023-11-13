@@ -1,7 +1,9 @@
 #include "mainwindow.h"
 #include "./ui_mainwindow.h"
-#include "qsourcehighliter.h"
 
+#include <QTextEdit>
+#include <QKeyEvent>
+#include <QTextCursor>
 
 
 MainWindow::MainWindow(QWidget *parent)
@@ -9,20 +11,16 @@ MainWindow::MainWindow(QWidget *parent)
     , ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
-    setCentralWidget(ui->textEdit);
+    customTextEdit = new CustomTextEdit(this);  // Use CustomTextEdit instead of QTextEdit
+    setCentralWidget(customTextEdit);
+
     file_path = "";
     m_changed = false;
     newFile();
+    statusBar()->showMessage("Character Count: 0");
 
-//    highlighter = new QSourceHighlite::QSourceHighliter(ui->textEdit->document());
-
-//    if(!file_path.isEmpty()){
-
-//        QFileInfo file(file_path);
-//        QString ext = file.completeSuffix();
-//        //highlighter->setCurrentLanguage(QSourceHighliter::ext);
-
-//    }
+    connect(customTextEdit, &QTextEdit::textChanged, this, &MainWindow::updateCharacterCount);
+    connect(customTextEdit, &CustomTextEdit::customKeyPress, this, &MainWindow::handleKeyPress);
 
 }
 
@@ -32,10 +30,13 @@ MainWindow::~MainWindow()
 }
 
 
+
+
+
 void MainWindow::on_actionNew_triggered()
 {
-        checksave();
-        newFile();
+    checksave();
+    newFile();
 
 }
 
@@ -67,51 +68,51 @@ void MainWindow::on_actionExit_triggered()
 
 void MainWindow::on_actionCut_triggered()
 {
-        ui->textEdit->cut();
+        customTextEdit->cut();
 }
 
 
 void MainWindow::on_actionCopy_triggered()
 {
-        ui->textEdit->copy();
+        customTextEdit->copy();
 }
 
 
 void MainWindow::on_actionPaste_triggered()
 {
-        ui->textEdit->paste();
+        customTextEdit->paste();
 }
 
 
 void MainWindow::on_actionRedo_triggered()
 {
-        ui->textEdit->redo();
+        customTextEdit->redo();
 }
 
 
 void MainWindow::on_actionUndo_triggered()
 {
-        ui->textEdit->undo();
+        customTextEdit->undo();
 }
 
 
 void MainWindow::on_actionZoom_In_triggered()
 {
-        ui->textEdit->zoomIn();
+        customTextEdit->zoomIn();
 }
 
 
 void MainWindow::on_actionZoom_Out_triggered()
 {
-        ui->textEdit->zoomOut();
+        customTextEdit->zoomOut();
 }
 
 
 void MainWindow::on_actionBold_triggered()
 {
-        QFont font = ui->textEdit->currentFont();
+        QFont font = customTextEdit->currentFont();
         font.bold() ? font.setBold(false) : font.setBold(true);
-        ui->textEdit->setCurrentFont(font);
+        customTextEdit->setCurrentFont(font);
         m_changed = true;
 
 }
@@ -119,9 +120,9 @@ void MainWindow::on_actionBold_triggered()
 
 void MainWindow::on_actionItalic_triggered()
 {
-        QFont font = ui->textEdit->currentFont();
+        QFont font = customTextEdit->currentFont();
         font.italic() ? font.setItalic(false) : font.setItalic(true);
-        ui->textEdit->setCurrentFont(font);
+        customTextEdit->setCurrentFont(font);
         m_changed = true;
 
 }
@@ -129,9 +130,9 @@ void MainWindow::on_actionItalic_triggered()
 
 void MainWindow::on_actionUnderline_triggered()
 {
-        QFont font = ui->textEdit->currentFont();
+        QFont font = customTextEdit->currentFont();
         font.underline() ? font.setUnderline(false) : font.setUnderline(true);
-        ui->textEdit->setCurrentFont(font);
+        customTextEdit->setCurrentFont(font);
         m_changed = true;
 
 }
@@ -139,15 +140,76 @@ void MainWindow::on_actionUnderline_triggered()
 
 void MainWindow::on_actionColor_triggered()
 {
-        QColor current = ui->textEdit->currentCharFormat().foreground().color();
+        QColor current = customTextEdit->currentCharFormat().foreground().color();
         QColor color = QColorDialog::getColor(current,this,"Choose a color");
-        ui->textEdit->setTextColor(color);
+        customTextEdit->setTextColor(color);
         m_changed = true;
 }
 
 void MainWindow::on_actionFont_triggered()
 {
+        bool what;
+        QFont font = QFontDialog::getFont(&what,customTextEdit->currentFont(),
+                                          this,"Choose a font");
+        if(what) customTextEdit->setCurrentFont(font);
+}
 
+//QString MainWindow::getClosingBracket(const QString &openingBracket)
+//{
+//        if (openingBracket == "{")
+//            return "}";
+//        else if (openingBracket == "(")
+//            return ")";
+//        else if (openingBracket == "[")
+//            return "]";
+//        return "";
+//}
+
+void MainWindow::handleKeyPress(QKeyEvent *event)
+{
+        QString pressedText = event->text();
+        QString closingBracket = "";
+        if (pressedText == "{") closingBracket = "{}";
+        else if (pressedText == "(") closingBracket = "()";
+        else if (pressedText == "[") closingBracket = "[]";
+        //event->text() = closingBracket;
+//        QTextCursor cursor = customTextEdit->textCursor();
+//        int currentPos = cursor.position();
+//        QTextBlock currentBlock = cursor.block();
+//        cursor.movePosition(QTextCursor::Right, QTextCursor::KeepAnchor, 1);
+
+//        // Remove the undesired text
+//        cursor.removeSelectedText();
+
+//        // Move the cursor back to the original position
+//        cursor.setPosition(currentBlock.position());
+
+//        // Set the modified cursor back to the text edit
+//        customTextEdit->setTextCursor(cursor);
+
+        if (!closingBracket.isEmpty()) {
+
+            int cursorPosition = customTextEdit->textCursor().position();
+            customTextEdit->insertPlainText(pressedText + closingBracket);
+            customTextEdit->setTextCursor(QTextCursor(customTextEdit->document()->find(closingBracket,cursorPosition)));
+            event->accept();
+        }
+//        cursor.select(QTextCursor::WordUnderCursor);
+//        cursor.insertText(closingBracket);
+//            cursor.setPosition(currentPos);
+//        cursor.movePosition(QTextCursor::NextBlock, QTextCursor::KeepAnchor);
+
+//            customTextEdit->setTextCursor(cursor);
+
+
+
+}
+
+void MainWindow::updateCharacterCount()
+{
+        QString text = customTextEdit->toPlainText();
+        int characterCount = text.length();
+        statusBar()->showMessage("Character Count: " + QString::number(characterCount));
 }
 
 void MainWindow::on_textEdit_textChanged()
@@ -157,7 +219,7 @@ void MainWindow::on_textEdit_textChanged()
 
 void MainWindow::newFile()
 {
-    ui->textEdit->clear();
+    customTextEdit->clear();
     ui->statusbar->showMessage("New File");
     file_path = "";
     m_changed = false;
@@ -175,7 +237,7 @@ void MainWindow::openFile()
     }
 
     QTextStream stream(&file);
-    ui->textEdit->setHtml(stream.readAll());
+    customTextEdit->setHtml(stream.readAll());
     file.close();
 
     file_path = path;
@@ -199,7 +261,7 @@ void MainWindow::saveFile(QString path)
         return;
     }
     QTextStream stream(&file);
-    stream << ui->textEdit->toHtml();
+    stream << customTextEdit->toHtml();
     file.close();
 
     file_path = path;
@@ -232,6 +294,34 @@ void MainWindow::checksave()
 
 }
 
+//void MainWindow::autoBracketClose()
+//{
+//    QTextCursor cursor = customTextEdit->textCursor();
+//    int currentPos = customTextEdit->cursor.position();
+//    QTextBlock currentBlock = customTextEdit->cursor.block();
+
+//    cursor.select(QTextCursor::WordUnderCursor);
+//    QString selectedText = cursor.selectedText();
+
+//    if (selectedText == "(")
+//    {
+//        cursor.insertText(")");
+//    }
+//    else if (selectedText == "{")
+//    {
+//        cursor.insertText("}");
+//    }
+//    else if (selectedText == "[")
+//    {
+//        cursor.insertText("]");
+//    }
+
+//    // Restore the cursor position
+//    cursor.setPosition(currentPos);
+//    cursor.setBlock(currentBlock);
+//    customTextEdit->setTextCursor(cursor);
+//}
+
 void MainWindow::closeEvent(QCloseEvent *event)
 {
     event->accept();
@@ -240,6 +330,60 @@ void MainWindow::closeEvent(QCloseEvent *event)
 
 void MainWindow::on_actionFind_triggered()
 {
+    FindDialog *dialogue = new FindDialog();
+    bool flag = false;
+    QTextDocument *document = customTextEdit->document();
+
+    QTextCursor highlightCursor(document);
+    QTextCursor cursor(document);
+    while(!flag) {
+        if(!dialogue->exec()) return;
+
+        QTextDocument::FindFlags flags;
+
+        cursor.beginEditBlock();
+
+        if(dialogue->getCaseSensitive()) flags = flags |
+                    QTextDocument::FindFlag::FindCaseSensitively;
+
+        if(dialogue->getWholeWord()) flags = flags |
+                    QTextDocument::FindFlag::FindWholeWords;
+        //        std::cout << dialogue->getFind() << '\n';
+
+        if(dialogue->getFind()) {
+
+            highlightCursor = document->find(dialogue->get_find_text(),
+                                             highlightCursor,
+                                             flags);
+
+            highlightCursor.movePosition(QTextCursor::Left,
+                                         QTextCursor::KeepAnchor,
+                                         dialogue->get_find_text().length());
+
+            customTextEdit->setTextCursor(highlightCursor);
+
+            //            qDebug() << dialogue->text().length() << '\n';
+
+            for(int i = 0; i < dialogue->get_find_text().length(); ++i) {
+                customTextEdit->moveCursor(QTextCursor::Right,
+                                         QTextCursor::KeepAnchor);
+            }
+
+            highlightCursor.movePosition(QTextCursor::Right,
+                                         QTextCursor::KeepAnchor,
+                                         dialogue->get_find_text().length());
+            //            cursor.endEditBlock();
+        }
+
+        else if(dialogue->getReplace()) {
+            QString text_to_be_replaced = customTextEdit->toHtml();
+            text_to_be_replaced = text_to_be_replaced.replace(
+                dialogue->get_find_text(), dialogue->get_replace_text());
+            customTextEdit->setHtml(text_to_be_replaced);
+            flag = true;
+        }
+        cursor.endEditBlock();
+    }
 
 }
 
@@ -248,6 +392,4 @@ void MainWindow::on_actionReplace_triggered()
 {
 
 }
-
-
 

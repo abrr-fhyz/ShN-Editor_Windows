@@ -23,27 +23,33 @@ public:
 
     bool getCaseSensitive() const;
 
-    bool getGoBackward() const;
 
-    QString text() const;
+    QString get_find_text() const;
+    QString get_replace_text() const;
+
+    bool getFind() const;
+
+    bool getReplace() const;
 
 private slots:
-    void on_buttonBox_accepted();
 
-    void on_buttonBox_rejected();
+    void on_find_clicked();
 
-    void goBack();
+    void on_replace_clicked();
 
 private:
     Ui::FindDialog *ui;
 
-    QString m_text;
+    QString find_text;
+    QString replace_text;
     bool wholeWord;
     bool caseSensitive;
-    bool goBackward;
 
     void init();
     void save();
+
+    bool find;
+    bool replace;
 };
 
 #endif // FINDDIALOG_H

@@ -1,5 +1,6 @@
 #include "finddialog.h"
 #include "ui_finddialog.h"
+#include "mainwindow.h"
 
 FindDialog::FindDialog(QWidget *parent) :
     QDialog(parent),
@@ -15,36 +16,16 @@ FindDialog::~FindDialog()
     delete ui;
 }
 
-void FindDialog::on_buttonBox_accepted()
+QString FindDialog::get_find_text() const
 {
-
-    save();
-    accept();
+    return find_text;
 }
 
-
-void FindDialog::on_buttonBox_rejected()
+QString FindDialog::get_replace_text() const
 {
-    reject();
+    return replace_text;
 }
 
-void FindDialog::goBack()
-{
-    save();
-    goBackward = true;
-    accept();
-
-}
-
-QString FindDialog::text() const
-{
-    return m_text;
-}
-
-bool FindDialog::getGoBackward() const
-{
-    return goBackward;
-}
 
 bool FindDialog::getCaseSensitive() const
 {
@@ -58,17 +39,42 @@ bool FindDialog::getWholeWord() const
 
 void FindDialog::init()
 {
-    QPushButton *btnBack = new QPushButton("Back",this);
-    connect(btnBack,&QPushButton::clicked,this,&FindDialog::goBack);
-    ui->buttonBox->addButton(btnBack,QDialogButtonBox::ActionRole);
 
 }
 
 void FindDialog::save()
 {
-    m_text = ui->lineEdit->text();
-//    wholeWord = ui->chkMatchWholeWord->isChecked();
-//    caseSensitive = ui->chkCaseSensitive->isChecked();
-    goBackward = false;
+    find_text = ui->lineEdit_find->text();
+    replace_text = ui->lineEdit_replace->text();
+    wholeWord = ui->wholeWord->isChecked();
+    caseSensitive = ui->caseSensitive->isChecked();
+    find = false;
+    replace = false;
+}
+
+bool FindDialog::getReplace() const
+{
+    return replace;
+}
+
+bool FindDialog::getFind() const
+{
+    return find;
+}
+
+void FindDialog::on_find_clicked()
+{
+    save();
+    find = true;
+    replace = false;
+    accept();
+}
+
+void FindDialog::on_replace_clicked()
+{
+    save();
+    find = false;
+    replace = true;
+    accept();
 }
 

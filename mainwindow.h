@@ -1,6 +1,6 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
-
+#include <QPlainTextEdit>
 #include <QMainWindow>
 #include <QFile>
 #include <QFileDialog>
@@ -8,12 +8,15 @@
 #include <QCloseEvent>
 #include <QTextStream>
 #include <QColorDialog>
+#include <QFontDialog>
+#include <QKeyEvent>
 #include <QFont>
 #include <QDebug>
 #include <QDir>
 #include <QString>
+#include "customtextedit.h"
 #include "finddialog.h"
-#include "qsourcehighliter.h"
+
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -26,6 +29,7 @@ class MainWindow : public QMainWindow
 public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
+
 
 private slots:
     void on_actionNew_triggered();
@@ -68,21 +72,26 @@ private slots:
 
     void on_actionFont_triggered();
 
+
 private:
     Ui::MainWindow *ui;
+    CustomTextEdit *customTextEdit;
     bool m_changed;
     QString file_path;
-    QSourceHighlite::QSourceHighliter *highlighter;
-
+    QString getClosingBracket(const QString &openingBracket) ;
+    void handleKeyPress(QKeyEvent *event);
+    void updateCharacterCount();
     void newFile();
     void openFile();
     void saveFile(QString path);
     void saveFileAs();
     void checksave();
+    void autoBracketClose();
 
 
     // QWidget interface
 protected:
     void closeEvent(QCloseEvent *event) override;
+
 };
 #endif // MAINWINDOW_H
