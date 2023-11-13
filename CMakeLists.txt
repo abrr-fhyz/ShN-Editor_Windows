@@ -27,6 +27,8 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         finddialog.h finddialog.cpp finddialog.ui
 
         customtextedit.h customtextedit.cpp
+        linenumberarea.h
+
 
     )
 # Define target properties for Android with Qt 6 as:

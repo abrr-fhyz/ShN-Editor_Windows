@@ -4,7 +4,9 @@
 #include <QTextEdit>
 #include <QKeyEvent>
 #include <QTextCursor>
-
+#include <iostream>
+#include <QTextBlock>
+#include <QRegularExpression>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -17,9 +19,11 @@ MainWindow::MainWindow(QWidget *parent)
     file_path = "";
     m_changed = false;
     newFile();
-    statusBar()->showMessage("Character Count: 0");
 
-    connect(customTextEdit, &QTextEdit::textChanged, this, &MainWindow::updateCharacterCount);
+    statusBar()->showMessage("Character: 0 Word: 0");
+
+    connect(customTextEdit, &QPlainTextEdit::textChanged, this, &MainWindow::on_textEdit_textChanged);
+    connect(customTextEdit, &QPlainTextEdit::textChanged, this, &MainWindow::updateCharacterCount);
     connect(customTextEdit, &CustomTextEdit::customKeyPress, this, &MainWindow::handleKeyPress);
 
 }
@@ -29,15 +33,10 @@ MainWindow::~MainWindow()
     delete ui;
 }
 
-
-
-
-
 void MainWindow::on_actionNew_triggered()
 {
     checksave();
     newFile();
-
 }
 
 
@@ -62,6 +61,7 @@ void MainWindow::on_actionSave_As_triggered()
 
 void MainWindow::on_actionExit_triggered()
 {
+        checksave();
         close();
 }
 
@@ -110,48 +110,48 @@ void MainWindow::on_actionZoom_Out_triggered()
 
 void MainWindow::on_actionBold_triggered()
 {
-        QFont font = customTextEdit->currentFont();
-        font.bold() ? font.setBold(false) : font.setBold(true);
-        customTextEdit->setCurrentFont(font);
-        m_changed = true;
+//        QFont font = customTextEdit->currentFont();
+//        font.bold() ? font.setBold(false) : font.setBold(true);
+//        customTextEdit->setCurrentFont(font);
+//        m_changed = true;
 
 }
 
 
 void MainWindow::on_actionItalic_triggered()
 {
-        QFont font = customTextEdit->currentFont();
-        font.italic() ? font.setItalic(false) : font.setItalic(true);
-        customTextEdit->setCurrentFont(font);
-        m_changed = true;
+//        QFont font = customTextEdit->currentFont();
+//        font.italic() ? font.setItalic(false) : font.setItalic(true);
+//        customTextEdit->setCurrentFont(font);
+//        m_changed = true;
 
 }
 
 
 void MainWindow::on_actionUnderline_triggered()
 {
-        QFont font = customTextEdit->currentFont();
-        font.underline() ? font.setUnderline(false) : font.setUnderline(true);
-        customTextEdit->setCurrentFont(font);
-        m_changed = true;
+//        QFont font = customTextEdit->currentFont();
+//        font.underline() ? font.setUnderline(false) : font.setUnderline(true);
+//        customTextEdit->setCurrentFont(font);
+//        m_changed = true;
 
 }
 
 
 void MainWindow::on_actionColor_triggered()
 {
-        QColor current = customTextEdit->currentCharFormat().foreground().color();
-        QColor color = QColorDialog::getColor(current,this,"Choose a color");
-        customTextEdit->setTextColor(color);
-        m_changed = true;
+//        QColor current = customTextEdit->currentCharFormat().foreground().color();
+//        QColor color = QColorDialog::getColor(current,this,"Choose a color");
+//        customTextEdit->setTextColor(color);
+//        m_changed = true;
 }
 
 void MainWindow::on_actionFont_triggered()
 {
-        bool what;
-        QFont font = QFontDialog::getFont(&what,customTextEdit->currentFont(),
-                                          this,"Choose a font");
-        if(what) customTextEdit->setCurrentFont(font);
+//        bool what;
+//        QFont font = QFontDialog::getFont(&what,customTextEdit->currentFont(),
+//                                          this,"Choose a font");
+//        if(what) customTextEdit->setCurrentFont(font);
 }
 
 //QString MainWindow::getClosingBracket(const QString &openingBracket)
@@ -189,7 +189,8 @@ void MainWindow::handleKeyPress(QKeyEvent *event)
 
         if (!closingBracket.isEmpty()) {
 //            int cursorPosition = customTextEdit->textCursor().position();
-            qDebug() << pressedText + closingBracket << '\n';
+//            qDebug() << pressedText + closingBracket << '\n';
+
             customTextEdit->textCursor().insertText(closingBracket);
             customTextEdit->moveCursor(QTextCursor::Left);
 
@@ -210,8 +211,9 @@ void MainWindow::handleKeyPress(QKeyEvent *event)
 void MainWindow::updateCharacterCount()
 {
         QString text = customTextEdit->toPlainText();
-        int characterCount = text.length();
-        statusBar()->showMessage("Character Count: " + QString::number(characterCount));
+        int characterCount = text.length() - text.count('\t');
+        int wordCount = text.split(QRegularExpression("\\W+"), Qt::SkipEmptyParts).count();
+        statusBar()->showMessage("Character: " + QString::number(characterCount) + " &  Word: " + QString::number(wordCount));
 }
 
 void MainWindow::on_textEdit_textChanged()
@@ -239,7 +241,7 @@ void MainWindow::openFile()
     }
 
     QTextStream stream(&file);
-    customTextEdit->setHtml(stream.readAll());
+    customTextEdit->setPlainText(stream.readAll());
     file.close();
 
     file_path = path;
@@ -263,7 +265,7 @@ void MainWindow::saveFile(QString path)
         return;
     }
     QTextStream stream(&file);
-    stream << customTextEdit->toHtml();
+    stream << customTextEdit->toPlainText();
     file.close();
 
     file_path = path;
@@ -281,6 +283,7 @@ void MainWindow::saveFileAs()
 
 void MainWindow::checksave()
 {
+    std::cout << std::boolalpha << m_changed << '\n';
     if(!m_changed) return;
 
     QMessageBox::StandardButton value = QMessageBox::question(this,"Save File","You have un-saved changes, would like to save them?");

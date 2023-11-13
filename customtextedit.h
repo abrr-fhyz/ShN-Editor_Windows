@@ -2,20 +2,37 @@
 #ifndef CUSTOMTEXTEDIT_H
 #define CUSTOMTEXTEDIT_H
 
-#include <QTextEdit>
+#include <QPlainTextEdit>
+#include <QPainter>
+#include <QTextBlock>
 
-class CustomTextEdit : public QTextEdit
+class CustomTextEdit : public QPlainTextEdit
 {
     Q_OBJECT
 
 public:
     explicit CustomTextEdit(QWidget *parent = nullptr);
 
+    void lineNumberAreaPaintEvent(QPaintEvent *event);
+    int lineNumberAreaWidth();
+
 protected:
     void keyPressEvent(QKeyEvent *event) override;
 
+    void resizeEvent(QResizeEvent* event) override;
+
 signals:
     void customKeyPress(QKeyEvent *event);
+
+private slots:
+    void handletabpress();
+    void updateLineNumberAreaWidth(int newBlockCount);
+    void highlightCurrentLine();
+    void updateLineNumberArea(const QRect &rect, int dy);
+
+private:
+    QWidget *lineNumberArea;
 };
+
 
 #endif // CUSTOMTEXTEDIT_H

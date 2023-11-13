@@ -16,6 +16,12 @@
 #include <QString>
 #include "customtextedit.h"
 #include "finddialog.h"
+#include <QTextEdit>
+#include <QKeyEvent>
+#include <QTextCursor>
+#include <iostream>
+#include <QTextBlock>
+#include <QRegularExpression>
 
 
 QT_BEGIN_NAMESPACE
