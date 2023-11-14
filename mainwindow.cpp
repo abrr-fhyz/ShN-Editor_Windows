@@ -7,7 +7,10 @@
 #include <iostream>
 #include <QTextBlock>
 #include <QRegularExpression>
-
+#include <QSplitter>
+#include <QProcess>
+#include <QByteArray>
+#include <QDebug>
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
@@ -20,11 +23,38 @@ MainWindow::MainWindow(QWidget *parent)
     m_changed = false;
     newFile();
 
+
+
+//    mainSplitter = new QSplitter(Qt::Horizontal, this);
+//    setCentralWidget(mainSplitter);
+
+//    // Create text editor
+//    customTextEdit = new CustomTextEdit(this);
+//    mainSplitter->addWidget(customTextEdit);
+
+//    // Create terminal text edit
+//    terminalTextEdit = new QPlainTextEdit(this);
+//    terminalTextEdit->setReadOnly(true);
+//    mainSplitter->addWidget(terminalTextEdit);
+
+//    terminalProcess = new QProcess(this);
+
+//    // Connect signals for terminal interaction
+//    connect(terminalProcess, &QProcess::readyReadStandardOutput, this, &MainWindow::terminalReadyRead);
+//    connect(terminalProcess, &QProcess::error,
+//            [this]() { terminalProcessError(terminalProcess->error()); });
+
+
+//    // Start the terminal process
+//    startTerminalProcess();
+
+
     statusBar()->showMessage("Character: 0 Word: 0 Row: 0 Column: 0");
 
     connect(customTextEdit, &QPlainTextEdit::textChanged, this, &MainWindow::on_textEdit_textChanged);
     connect(customTextEdit, &QPlainTextEdit::textChanged, this, &MainWindow::updateCharacterCount);
     connect(customTextEdit, &CustomTextEdit::customKeyPress, this, &MainWindow::handleKeyPress);
+    connect(customTextEdit, &QPlainTextEdit::textChanged, this, &MainWindow::handleTextChanged);
 
 }
 
@@ -39,6 +69,41 @@ void MainWindow::on_actionNew_triggered()
     checksave();
     newFile();
 }
+
+
+void MainWindow::terminalReadyRead()
+{
+    QByteArray data = terminalProcess->readAllStandardOutput();
+    terminalTextEdit->insertPlainText(QString::fromUtf8(data));
+}
+
+// Implement the terminalProcessError slot
+void MainWindow::terminalProcessError(QProcess::ProcessError error)
+{
+    qDebug() << "Terminal process error: " << error;
+}
+
+// Implement the startTerminalProcess function
+void MainWindow::startTerminalProcess()
+{
+    // Start the system's shell (e.g., Bash) in interactive mode
+    terminalProcess->start("/bin/bash", QStringList() << "-i");
+
+    // Ensure the process is started successfully
+    if (!terminalProcess->waitForStarted()) {
+        qDebug() << "Error starting terminal process: " << terminalProcess->errorString();
+    }
+}
+
+// Modify the runTerminalCommand function
+void MainWindow::runTerminalCommand(const QString &command)
+{
+    // Write the command to the terminal process
+    terminalProcess->write((command + "\n").toUtf8());
+    terminalProcess->waitForBytesWritten();
+}
+
+
 
 
 void MainWindow::on_actionOpen_triggered()
@@ -166,8 +231,34 @@ void MainWindow::on_actionFont_triggered()
 //        return "";
 //}
 
+
+void MainWindow::handleTextChanged()
+{
+        // Get the current text in the editor
+        QString currentText = customTextEdit->toPlainText();
+
+        // Check if the current text ends with "#include"
+        if (currentText.endsWith("#include")) {
+        // Append "<>" to the next line
+        customTextEdit->textCursor().insertText("<>");
+        }
+}
+
 void MainWindow::handleKeyPress(QKeyEvent *event)
 {
+
+//        if (event->key() == Qt::Key_Return || event->key() == Qt::Key_Enter) {
+//        QString currentLine = customTextEdit->toPlainText().split('\n').last().trimmed();
+//        if (currentLine.startsWith("#include")) {
+//            // Append "<>" to the next line
+//            customTextEdit->insertPlainText("<>");
+//            return;
+//        }
+ // }
+        if (event->key() == Qt::Key_F2) {
+            // F2 key is pressed, run a sample terminal command
+            runTerminalCommand("ls -l");
+        }
         QString pressedText = event->text();
         QString closingBracket = "";
         if (pressedText == "{") closingBracket = "}";
@@ -227,6 +318,13 @@ void MainWindow::on_textEdit_textChanged()
 
 void MainWindow::newFile()
 {
+    if (!customTextEdit) {
+            qDebug() << "Error: QPlainTextEdit is not valid.";
+            return;
+    }
+
+    // Check if d_func() returns a valid pointer
+
     customTextEdit->clear();
     ui->statusbar->showMessage("New File");
     file_path = "";
@@ -290,7 +388,7 @@ void MainWindow::checksave()
     std::cout << std::boolalpha << m_changed << '\n';
     if(!m_changed) return;
 
-    QMessageBox::StandardButton value = QMessageBox::question(this,"Save File","You have un-saved changes, would like to save them?");
+    QMessageBox::StandardButton value = QMessageBox::question(this,"Save File","You have unsaved changes, would you like to save them?");
     if(value != QMessageBox::StandardButton::Yes) return;
 
     if(file_path.isEmpty()){
@@ -302,34 +400,6 @@ void MainWindow::checksave()
 
 
 }
-
-//void MainWindow::autoBracketClose()
-//{
-//    QTextCursor cursor = customTextEdit->textCursor();
-//    int currentPos = customTextEdit->cursor.position();
-//    QTextBlock currentBlock = customTextEdit->cursor.block();
-
-//    cursor.select(QTextCursor::WordUnderCursor);
-//    QString selectedText = cursor.selectedText();
-
-//    if (selectedText == "(")
-//    {
-//        cursor.insertText(")");
-//    }
-//    else if (selectedText == "{")
-//    {
-//        cursor.insertText("}");
-//    }
-//    else if (selectedText == "[")
-//    {
-//        cursor.insertText("]");
-//    }
-
-//    // Restore the cursor position
-//    cursor.setPosition(currentPos);
-//    cursor.setBlock(currentBlock);
-//    customTextEdit->setTextCursor(cursor);
-//}
 
 void MainWindow::closeEvent(QCloseEvent *event)
 {

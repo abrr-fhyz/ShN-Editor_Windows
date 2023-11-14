@@ -22,6 +22,8 @@
 #include <iostream>
 #include <QTextBlock>
 #include <QRegularExpression>
+#include <QSplitter>
+#include <QProcess>
 
 
 QT_BEGIN_NAMESPACE
@@ -76,6 +78,9 @@ private slots:
 
 
     void on_actionFont_triggered();
+    void runTerminalCommand(const QString &command);
+    void terminalReadyRead();
+    void terminalProcessError(QProcess::ProcessError error);
 
 
 private:
@@ -92,6 +97,13 @@ private:
     void saveFileAs();
     void checksave();
     void autoBracketClose();
+    QSplitter *mainSplitter;
+    QPlainTextEdit *terminalTextEdit;
+    QProcess *terminalProcess;
+    void startTerminalProcess();
+    void handleTextChanged();
+
+
 
 
     // QWidget interface

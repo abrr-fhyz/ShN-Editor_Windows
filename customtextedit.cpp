@@ -90,21 +90,21 @@ void CustomTextEdit::resizeEvent(QResizeEvent *e)
 
 void CustomTextEdit::highlightCurrentLine()
 {
-//    QList<QTextEdit::ExtraSelection> extraSelections;
+    QList<QTextEdit::ExtraSelection> extraSelections;
 
-//    if (!isReadOnly()) {
-//        QTextEdit::ExtraSelection selection;
+    if (!isReadOnly()) {
+        QTextEdit::ExtraSelection selection;
 
-//        QColor lineColor = QColor(Qt::yellow).lighter(160);
+        QColor lineColor = QColor(0x9BEDFF).lighter(110);
 
-//        selection.format.setBackground(lineColor);
-//        selection.format.setProperty(QTextFormat::FullWidthSelection, true);
-//        selection.cursor = textCursor();
-//        selection.cursor.clearSelection();
-//        extraSelections.append(selection);
-//    }
+        selection.format.setBackground(lineColor);
+        selection.format.setProperty(QTextFormat::FullWidthSelection, true);
+        selection.cursor = textCursor();
+        selection.cursor.clearSelection();
+        extraSelections.append(selection);
+    }
 
-//    setExtraSelections(extraSelections);
+    setExtraSelections(extraSelections);
 }
 
 void CustomTextEdit::lineNumberAreaPaintEvent(QPaintEvent *event)
