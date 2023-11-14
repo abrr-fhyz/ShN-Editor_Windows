@@ -74,7 +74,6 @@ private slots:
 
     void on_actionFind_triggered();
 
-    void on_actionReplace_triggered();
 
     void on_actionFont_triggered();
 

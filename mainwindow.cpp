@@ -20,7 +20,7 @@ MainWindow::MainWindow(QWidget *parent)
     m_changed = false;
     newFile();
 
-    statusBar()->showMessage("Character: 0 Word: 0");
+    statusBar()->showMessage("Character: 0 Word: 0 Row: 0 Column: 0");
 
     connect(customTextEdit, &QPlainTextEdit::textChanged, this, &MainWindow::on_textEdit_textChanged);
     connect(customTextEdit, &QPlainTextEdit::textChanged, this, &MainWindow::updateCharacterCount);
@@ -32,6 +32,7 @@ MainWindow::~MainWindow()
 {
     delete ui;
 }
+
 
 void MainWindow::on_actionNew_triggered()
 {
@@ -213,7 +214,10 @@ void MainWindow::updateCharacterCount()
         QString text = customTextEdit->toPlainText();
         int characterCount = text.length() - text.count('\t');
         int wordCount = text.split(QRegularExpression("\\W+"), Qt::SkipEmptyParts).count();
-        statusBar()->showMessage("Character: " + QString::number(characterCount) + " &  Word: " + QString::number(wordCount));
+        QTextCursor cursor = customTextEdit->textCursor();
+        int row = cursor.blockNumber() + 1;  // Add 1 because blockNumber() is zero-based
+        int column = cursor.columnNumber() + 1;  // Add 1 because columnNumber() is zero-based
+        statusBar()->showMessage("Character: " + QString::number(characterCount) + "  Word: " + QString::number(wordCount) + " Row: " + QString::number(row) + " Column: " + QString::number(column) );
 }
 
 void MainWindow::on_textEdit_textChanged()
@@ -329,6 +333,7 @@ void MainWindow::checksave()
 
 void MainWindow::closeEvent(QCloseEvent *event)
 {
+    checksave();
     event->accept();
 }
 
@@ -393,8 +398,5 @@ void MainWindow::on_actionFind_triggered()
 }
 
 
-void MainWindow::on_actionReplace_triggered()
-{
 
-}
 
