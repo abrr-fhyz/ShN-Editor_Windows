@@ -18,7 +18,7 @@ CustomTextEdit::CustomTextEdit(QWidget *parent)
 
 void CustomTextEdit::keyPressEvent(QKeyEvent *event)
 {
-    if (event->key() == Qt::Key_Tab) {
+   if (event->key() == Qt::Key_Tab) {
         handletabpress();
     } else {
         emit customKeyPress(event);

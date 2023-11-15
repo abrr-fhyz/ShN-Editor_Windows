@@ -64,20 +64,11 @@ private slots:
 
     void on_actionZoom_Out_triggered();
 
-    void on_actionBold_triggered();
-
-    void on_actionItalic_triggered();
-
-    void on_actionUnderline_triggered();
-
-    void on_actionColor_triggered();
-
     void on_textEdit_textChanged();
 
     void on_actionFind_triggered();
 
 
-    void on_actionFont_triggered();
     void runTerminalCommand(const QString &command);
     void terminalReadyRead();
     void terminalProcessError(QProcess::ProcessError error);
@@ -102,9 +93,6 @@ private:
     QProcess *terminalProcess;
     void startTerminalProcess();
     void handleTextChanged();
-
-
-
 
     // QWidget interface
 protected:

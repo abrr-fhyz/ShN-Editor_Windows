@@ -22,7 +22,7 @@ protected:
 
 signals:
     void customKeyPress(QKeyEvent *event);
-
+    void terminalInput(const QString& input);
 private slots:
     void handletabpress();
     void updateLineNumberAreaWidth(int newBlockCount);

@@ -16,8 +16,8 @@ MainWindow::MainWindow(QWidget *parent)
     , ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
-    customTextEdit = new CustomTextEdit(this);  // Use CustomTextEdit instead of QTextEdit
-    setCentralWidget(customTextEdit);
+//    customTextEdit = new CustomTextEdit(this);  // Use CustomTextEdit instead of QTextEdit
+//    setCentralWidget(customTextEdit);
 
     file_path = "";
     m_changed = false;
@@ -25,28 +25,28 @@ MainWindow::MainWindow(QWidget *parent)
 
 
 
-//    mainSplitter = new QSplitter(Qt::Horizontal, this);
-//    setCentralWidget(mainSplitter);
+    mainSplitter = new QSplitter(Qt::Horizontal, this);
+    setCentralWidget(mainSplitter);
 
-//    // Create text editor
-//    customTextEdit = new CustomTextEdit(this);
-//    mainSplitter->addWidget(customTextEdit);
+    // Create text editor
+    customTextEdit = new CustomTextEdit(this);
+    mainSplitter->addWidget(customTextEdit);
 
-//    // Create terminal text edit
-//    terminalTextEdit = new QPlainTextEdit(this);
-//    terminalTextEdit->setReadOnly(true);
-//    mainSplitter->addWidget(terminalTextEdit);
+    // Create terminal text edit
+    terminalTextEdit = new QPlainTextEdit(this);
+    terminalTextEdit->setReadOnly(true);
+    mainSplitter->addWidget(terminalTextEdit);
 
-//    terminalProcess = new QProcess(this);
+    terminalProcess = new QProcess(this);
 
-//    // Connect signals for terminal interaction
-//    connect(terminalProcess, &QProcess::readyReadStandardOutput, this, &MainWindow::terminalReadyRead);
-//    connect(terminalProcess, &QProcess::error,
-//            [this]() { terminalProcessError(terminalProcess->error()); });
+    // Connect signals for terminal interaction
+    connect(terminalProcess, &QProcess::readyReadStandardOutput, this, &MainWindow::terminalReadyRead);
+    connect(terminalProcess, &QProcess::error,
+            [this]() { terminalProcessError(terminalProcess->error()); });
 
 
-//    // Start the terminal process
-//    startTerminalProcess();
+    // Start the terminal process
+    startTerminalProcess();
 
 
     statusBar()->showMessage("Character: 0 Word: 0 Row: 0 Column: 0");
@@ -73,8 +73,9 @@ void MainWindow::on_actionNew_triggered()
 
 void MainWindow::terminalReadyRead()
 {
-    QByteArray data = terminalProcess->readAllStandardOutput();
+    QByteArray data = terminalProcess->readAll();
     terminalTextEdit->insertPlainText(QString::fromUtf8(data));
+    qDebug() << QString::fromUtf8(data);
 }
 
 // Implement the terminalProcessError slot
@@ -86,19 +87,36 @@ void MainWindow::terminalProcessError(QProcess::ProcessError error)
 // Implement the startTerminalProcess function
 void MainWindow::startTerminalProcess()
 {
-    // Start the system's shell (e.g., Bash) in interactive mode
-    terminalProcess->start("/bin/bash", QStringList() << "-i");
+    QString appDir = QCoreApplication::applicationDirPath();
+    QString terminalExecutable = appDir + "/your_terminal_executable";
 
-    // Ensure the process is started successfully
+    if (!QFile::exists(terminalExecutable)) {
+        qDebug() << "Error: Terminal executable not found at " << terminalExecutable;
+        return;
+    }
+
+    terminalProcess->start(terminalExecutable, QStringList() << "-i");
+
     if (!terminalProcess->waitForStarted()) {
         qDebug() << "Error starting terminal process: " << terminalProcess->errorString();
+        // Show an error message to the user
+        QMessageBox::critical(this, "Error", "Failed to start terminal process.");
     }
 }
 
 // Modify the runTerminalCommand function
 void MainWindow::runTerminalCommand(const QString &command)
 {
-    // Write the command to the terminal process
+    terminalProcess->setProcessChannelMode(QProcess::MergedChannels);
+
+    // Connect a signal to handle the input from the user
+    connect(customTextEdit, &CustomTextEdit::terminalInput, this, [this](const QString& input) {
+        // Write the user input to the terminal process
+        terminalProcess->write((input + "\n").toUtf8());
+        terminalProcess->waitForBytesWritten();
+    });
+
+    // Write the initial command to the terminal process
     terminalProcess->write((command + "\n").toUtf8());
     terminalProcess->waitForBytesWritten();
 }
@@ -174,62 +192,7 @@ void MainWindow::on_actionZoom_Out_triggered()
 }
 
 
-void MainWindow::on_actionBold_triggered()
-{
-//        QFont font = customTextEdit->currentFont();
-//        font.bold() ? font.setBold(false) : font.setBold(true);
-//        customTextEdit->setCurrentFont(font);
-//        m_changed = true;
 
-}
-
-
-void MainWindow::on_actionItalic_triggered()
-{
-//        QFont font = customTextEdit->currentFont();
-//        font.italic() ? font.setItalic(false) : font.setItalic(true);
-//        customTextEdit->setCurrentFont(font);
-//        m_changed = true;
-
-}
-
-
-void MainWindow::on_actionUnderline_triggered()
-{
-//        QFont font = customTextEdit->currentFont();
-//        font.underline() ? font.setUnderline(false) : font.setUnderline(true);
-//        customTextEdit->setCurrentFont(font);
-//        m_changed = true;
-
-}
-
-
-void MainWindow::on_actionColor_triggered()
-{
-//        QColor current = customTextEdit->currentCharFormat().foreground().color();
-//        QColor color = QColorDialog::getColor(current,this,"Choose a color");
-//        customTextEdit->setTextColor(color);
-//        m_changed = true;
-}
-
-void MainWindow::on_actionFont_triggered()
-{
-//        bool what;
-//        QFont font = QFontDialog::getFont(&what,customTextEdit->currentFont(),
-//                                          this,"Choose a font");
-//        if(what) customTextEdit->setCurrentFont(font);
-}
-
-//QString MainWindow::getClosingBracket(const QString &openingBracket)
-//{
-//        if (openingBracket == "{")
-//            return "}";
-//        else if (openingBracket == "(")
-//            return ")";
-//        else if (openingBracket == "[")
-//            return "]";
-//        return "";
-//}
 
 
 void MainWindow::handleTextChanged()
@@ -255,46 +218,24 @@ void MainWindow::handleKeyPress(QKeyEvent *event)
 //            return;
 //        }
  // }
+
         if (event->key() == Qt::Key_F2) {
             // F2 key is pressed, run a sample terminal command
-            runTerminalCommand("ls -l");
+        QFileInfo fileInfo(file_path);
+        QString file_name = fileInfo.filePath();
+        qDebug() << file_name;
+            runTerminalCommand("gcc "+file_name+" -o output && ./output < input.in");
         }
         QString pressedText = event->text();
         QString closingBracket = "";
         if (pressedText == "{") closingBracket = "}";
         else if (pressedText == "(") closingBracket = ")";
         else if (pressedText == "[") closingBracket = "]";
-        //event->text() = closingBracket;
-//        QTextCursor cursor = customTextEdit->textCursor();
-//        int currentPos = cursor.position();
-//        QTextBlock currentBlock = cursor.block();
-//        cursor.movePosition(QTextCursor::Right, QTextCursor::KeepAnchor, 1);
-
-//        // Remove the undesired text
-//        cursor.removeSelectedText();
-
-//        // Move the cursor back to the original position
-//        cursor.setPosition(currentBlock.position());
-
-//        // Set the modified cursor back to the text edit
-//        customTextEdit->setTextCursor(cursor);
 
         if (!closingBracket.isEmpty()) {
-//            int cursorPosition = customTextEdit->textCursor().position();
-//            qDebug() << pressedText + closingBracket << '\n';
-
             customTextEdit->textCursor().insertText(closingBracket);
             customTextEdit->moveCursor(QTextCursor::Left);
-
-//            customTextEdit->setTextCursor(QTextCursor(customTextEdit->document()->find(closingBracket,cursorPosition)));
-//            event->accept();
         }
-//        cursor.select(QTextCursor::WordUnderCursor);
-//        cursor.insertText(closingBracket);
-//            cursor.setPosition(currentPos);
-//        cursor.movePosition(QTextCursor::NextBlock, QTextCursor::KeepAnchor);
-
-//            customTextEdit->setTextCursor(cursor);
 
 
 
@@ -360,6 +301,7 @@ void MainWindow::saveFile(QString path)
     }
 
     QFile file(path);
+
     if(!file.open(QIODevice::WriteOnly)){
         QMessageBox::critical(this,"Error",file.errorString());
         ui->statusbar->showMessage("Error Couldn't save the file");
