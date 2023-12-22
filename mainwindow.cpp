@@ -9,47 +9,42 @@
 #include <QRegularExpression>
 #include <QSplitter>
 #include <QProcess>
-#include <QByteArray>
-#include <QDebug>
+#include <QFileDialog>
+#include <QTextStream>
+#include <QMessageBox>
+#include <QInputDialog>
+#include <QLineEdit>
+#include <QFormLayout>
+
 MainWindow::MainWindow(QWidget *parent)
-    : QMainWindow(parent)
-    , ui(new Ui::MainWindow)
+    : QMainWindow(parent), ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
-//    customTextEdit = new CustomTextEdit(this);  // Use CustomTextEdit instead of QTextEdit
-//    setCentralWidget(customTextEdit);
 
     file_path = "";
     m_changed = false;
     newFile();
 
-
-
     mainSplitter = new QSplitter(Qt::Horizontal, this);
     setCentralWidget(mainSplitter);
 
-    // Create text editor
     customTextEdit = new CustomTextEdit(this);
     mainSplitter->addWidget(customTextEdit);
 
-    // Create terminal text edit
     terminalTextEdit = new QPlainTextEdit(this);
     terminalTextEdit->setReadOnly(true);
     mainSplitter->addWidget(terminalTextEdit);
 
     terminalProcess = new QProcess(this);
 
-    // Connect signals for terminal interaction
     connect(terminalProcess, &QProcess::readyReadStandardOutput, this, &MainWindow::terminalReadyRead);
-    connect(terminalProcess, &QProcess::error,
-            [this]() { terminalProcessError(terminalProcess->error()); });
+    connect(terminalProcess, QOverload<QProcess::ProcessError>::of(&QProcess::errorOccurred),
+            this, &MainWindow::terminalProcessError);
 
 
-    // Start the terminal process
     startTerminalProcess();
 
-
-    statusBar()->showMessage("Character: 0 Word: 0 Row: 0 Column: 0");
+    statusBar()->showMessage("Character: 0 Word: 0 Row: 0");
 
     connect(customTextEdit, &QPlainTextEdit::textChanged, this, &MainWindow::on_textEdit_textChanged);
     connect(customTextEdit, &QPlainTextEdit::textChanged, this, &MainWindow::updateCharacterCount);
@@ -57,6 +52,67 @@ MainWindow::MainWindow(QWidget *parent)
     connect(customTextEdit, &QPlainTextEdit::textChanged, this, &MainWindow::handleTextChanged);
 
 }
+
+
+void MainWindow::terminalReadyRead()
+{
+    QByteArray data = terminalProcess->readAll();
+    terminalTextEdit->insertPlainText(QString::fromUtf8(data));
+    qDebug() << QString::fromUtf8(data);
+}
+
+void MainWindow::terminalProcessError(QProcess::ProcessError error)
+{
+    qDebug() << "Terminal process error: " << error;
+}
+
+void MainWindow::startTerminalProcess()
+{
+    QString terminalExecutable = "/bin/bash"; // Use bash as the terminal executable
+
+    if (!QFile::exists(terminalExecutable)) {
+        qDebug() << "Error: Terminal executable not found at " << terminalExecutable;
+        return;
+    }
+
+    terminalProcess->start(terminalExecutable, QStringList());
+    if (!terminalProcess->waitForStarted()) {
+        qDebug() << "Error starting terminal process: " << terminalProcess->errorString();
+        QMessageBox::critical(this, "Error", "Failed to start terminal process.");
+    }
+}
+
+void MainWindow::runTerminalCommand(const QString &command, const QString &input)
+{
+    if (terminalProcess->state() != QProcess::Running) {
+        qDebug() << "Error: Terminal process is not running.";
+        return;
+    }
+
+    terminalProcess->setProcessChannelMode(QProcess::MergedChannels);
+
+    // Connect the signal for handling the input only once
+    static bool connected = false;
+    if (!connected) {
+        connect(customTextEdit, &CustomTextEdit::terminalInput, this, [this](const QString &input) {
+            terminalProcess->write((input + "\n").toUtf8());
+            terminalProcess->waitForBytesWritten();
+        });
+        connected = true;
+    }
+
+
+    QString commandWithInput = command + " <<< \"" + input + "\"";
+
+    terminalProcess->write((commandWithInput + "\n").toUtf8());
+    terminalProcess->waitForBytesWritten();
+}
+
+
+
+
+// The rest of your code remains unchanged
+
 
 MainWindow::~MainWindow()
 {
@@ -70,56 +126,6 @@ void MainWindow::on_actionNew_triggered()
     newFile();
 }
 
-
-void MainWindow::terminalReadyRead()
-{
-    QByteArray data = terminalProcess->readAll();
-    terminalTextEdit->insertPlainText(QString::fromUtf8(data));
-    qDebug() << QString::fromUtf8(data);
-}
-
-// Implement the terminalProcessError slot
-void MainWindow::terminalProcessError(QProcess::ProcessError error)
-{
-    qDebug() << "Terminal process error: " << error;
-}
-
-// Implement the startTerminalProcess function
-void MainWindow::startTerminalProcess()
-{
-    QString appDir = QCoreApplication::applicationDirPath();
-    QString terminalExecutable = appDir + "/your_terminal_executable";
-
-    if (!QFile::exists(terminalExecutable)) {
-        qDebug() << "Error: Terminal executable not found at " << terminalExecutable;
-        return;
-    }
-
-    terminalProcess->start(terminalExecutable, QStringList() << "-i");
-
-    if (!terminalProcess->waitForStarted()) {
-        qDebug() << "Error starting terminal process: " << terminalProcess->errorString();
-        // Show an error message to the user
-        QMessageBox::critical(this, "Error", "Failed to start terminal process.");
-    }
-}
-
-// Modify the runTerminalCommand function
-void MainWindow::runTerminalCommand(const QString &command)
-{
-    terminalProcess->setProcessChannelMode(QProcess::MergedChannels);
-
-    // Connect a signal to handle the input from the user
-    connect(customTextEdit, &CustomTextEdit::terminalInput, this, [this](const QString& input) {
-        // Write the user input to the terminal process
-        terminalProcess->write((input + "\n").toUtf8());
-        terminalProcess->waitForBytesWritten();
-    });
-
-    // Write the initial command to the terminal process
-    terminalProcess->write((command + "\n").toUtf8());
-    terminalProcess->waitForBytesWritten();
-}
 
 
 
@@ -219,13 +225,22 @@ void MainWindow::handleKeyPress(QKeyEvent *event)
 //        }
  // }
 
-        if (event->key() == Qt::Key_F2) {
-            // F2 key is pressed, run a sample terminal command
-        QFileInfo fileInfo(file_path);
-        QString file_name = fileInfo.filePath();
-        qDebug() << file_name;
-            runTerminalCommand("gcc "+file_name+" -o output && ./output < input.in");
+    if (event->key() == Qt::Key_F2) {
+        bool ok;
+        QString input = QInputDialog::getMultiLineText(this, "Input", "Enter input:", "", &ok);
+
+        if (ok) {
+            // User provided input, construct the complete command without input redirection
+            QFileInfo fileInfo(file_path);
+            QString file_name = fileInfo.filePath();
+            QString command = "gcc " + file_name + " -o output && ./output";
+
+            runTerminalCommand(command, input);  // Pass input directly to the command
         }
+        }
+
+
+
         QString pressedText = event->text();
         QString closingBracket = "";
         if (pressedText == "{") closingBracket = "}";

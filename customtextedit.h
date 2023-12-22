@@ -19,10 +19,12 @@ public:
 protected:
     void keyPressEvent(QKeyEvent *event) override;
     void resizeEvent(QResizeEvent* event) override;
+    void autoIndent();
 
 signals:
     void customKeyPress(QKeyEvent *event);
     void terminalInput(const QString& input);
+
 private slots:
     void handletabpress();
     void updateLineNumberAreaWidth(int newBlockCount);

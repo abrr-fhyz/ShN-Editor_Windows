@@ -1,7 +1,7 @@
 // customtextedit.cpp
 #include "customtextedit.h"
 #include "linenumberarea.h"
-
+#include <QRegularExpression>
 
 CustomTextEdit::CustomTextEdit(QWidget *parent)
     : QPlainTextEdit(parent)
@@ -24,8 +24,33 @@ void CustomTextEdit::keyPressEvent(QKeyEvent *event)
         emit customKeyPress(event);
         QPlainTextEdit::keyPressEvent(event);
     }
+    if (event->modifiers() == Qt::ControlModifier && event->key() == Qt::Key_I) {
+        // Cmd + I pressed, perform auto-indentation for the whole code
+        autoIndent();
+        return;
+    }
 }
+void CustomTextEdit::autoIndent()
+{
+    QTextCursor cursor = textCursor();
+    cursor.movePosition(QTextCursor::Start, QTextCursor::MoveAnchor);
 
+    // Iterate through each line and perform indentation
+    while (!cursor.atEnd()) {
+        QString line = cursor.block().text();
+        int leadingSpaces = line.indexOf(QRegularExpression("[^\\s]"));
+
+        // Set the cursor position to the start of the line
+        cursor.movePosition(QTextCursor::StartOfLine, QTextCursor::MoveAnchor);
+        // Insert the appropriate number of spaces for indentation
+        cursor.insertText(QString(leadingSpaces, ' '));
+        // Move to the next line
+        cursor.movePosition(QTextCursor::NextBlock, QTextCursor::MoveAnchor);
+    }
+
+    // Restore the original cursor position
+    setTextCursor(cursor);
+}
 void CustomTextEdit::handletabpress()
 {
     QTextCursor cursor = textCursor();

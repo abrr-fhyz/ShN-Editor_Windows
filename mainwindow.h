@@ -69,9 +69,10 @@ private slots:
     void on_actionFind_triggered();
 
 
-    void runTerminalCommand(const QString &command);
+    void runTerminalCommand(const QString &command, const QString &input);
     void terminalReadyRead();
     void terminalProcessError(QProcess::ProcessError error);
+   // void showCustomInputDialog();
 
 
 private:
