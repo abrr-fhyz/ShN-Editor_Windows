@@ -103,7 +103,7 @@ void MainWindow::runTerminalCommand(const QString &command, const QString &input
 
 
     QString commandWithInput = command + " <<< \"" + input + "\"";
-
+    terminalTextEdit->clear();
     terminalProcess->write((commandWithInput + "\n").toUtf8());
     terminalProcess->waitForBytesWritten();
 }
@@ -126,16 +126,11 @@ void MainWindow::on_actionNew_triggered()
     newFile();
 }
 
-
-
-
-
 void MainWindow::on_actionOpen_triggered()
 {
         checksave();
         openFile();
 }
-
 
 void MainWindow::on_actionSave_triggered()
 {
@@ -210,8 +205,13 @@ void MainWindow::handleTextChanged()
         if (currentText.endsWith("#include")) {
         // Append "<>" to the next line
         customTextEdit->textCursor().insertText("<>");
+        customTextEdit->moveCursor(QTextCursor::Left);
         }
 }
+
+
+
+
 
 void MainWindow::handleKeyPress(QKeyEvent *event)
 {
@@ -224,8 +224,8 @@ void MainWindow::handleKeyPress(QKeyEvent *event)
 //            return;
 //        }
  // }
-
-    if (event->key() == Qt::Key_F2) {
+    QKeyEvent* key = static_cast<QKeyEvent*>(event);
+    if (key->key() == Qt::Key_F2) {
         bool ok;
         QString input = QInputDialog::getMultiLineText(this, "Input", "Enter input:", "", &ok);
 
@@ -233,27 +233,24 @@ void MainWindow::handleKeyPress(QKeyEvent *event)
             // User provided input, construct the complete command without input redirection
             QFileInfo fileInfo(file_path);
             QString file_name = fileInfo.filePath();
-            QString command = "gcc " + file_name + " -o output && ./output";
-
+            QString command = "g++ \"" + file_name + "\" -o output && ./output";
             runTerminalCommand(command, input);  // Pass input directly to the command
         }
-        }
+    }
+    if(key->key() == Qt::Key_Enter) {
+        qDebug() << "Enter Pressed\n";
+    }
+    QString pressedText = key->text();
+    QString closingBracket = "";
+    if (pressedText == "{") closingBracket = "}";
+    else if (pressedText == "(") closingBracket = ")";
+    else if (pressedText == "[") closingBracket = "]";
 
 
-
-        QString pressedText = event->text();
-        QString closingBracket = "";
-        if (pressedText == "{") closingBracket = "}";
-        else if (pressedText == "(") closingBracket = ")";
-        else if (pressedText == "[") closingBracket = "]";
-
-        if (!closingBracket.isEmpty()) {
-            customTextEdit->textCursor().insertText(closingBracket);
-            customTextEdit->moveCursor(QTextCursor::Left);
-        }
-
-
-
+    if (!closingBracket.isEmpty()) {
+        customTextEdit->textCursor().insertText(closingBracket);
+        customTextEdit->moveCursor(QTextCursor::Left);
+    }
 }
 
 void MainWindow::updateCharacterCount()
@@ -264,7 +261,10 @@ void MainWindow::updateCharacterCount()
         QTextCursor cursor = customTextEdit->textCursor();
         int row = cursor.blockNumber() + 1;  // Add 1 because blockNumber() is zero-based
         int column = cursor.columnNumber() + 1;  // Add 1 because columnNumber() is zero-based
-        statusBar()->showMessage("Character: " + QString::number(characterCount) + "  Word: " + QString::number(wordCount) + " Row: " + QString::number(row) + " Column: " + QString::number(column) );
+        statusBar()->showMessage("Character: " + QString::number(characterCount) +
+                                 "  Word: " + QString::number(wordCount) +
+                                 " Row: " + QString::number(row) +
+                                 " Column: " + QString::number(column) );
 }
 
 void MainWindow::on_textEdit_textChanged()
@@ -274,14 +274,14 @@ void MainWindow::on_textEdit_textChanged()
 
 void MainWindow::newFile()
 {
-    if (!customTextEdit) {
-            qDebug() << "Error: QPlainTextEdit is not valid.";
-            return;
-    }
+//    if (!customTextEdit) {
+//            qDebug() << "Error: QPlainTextEdit is not valid.";
+//            return;
+//    }
 
     // Check if d_func() returns a valid pointer
 
-    customTextEdit->clear();
+//    customTextEdit->clear();
     ui->statusbar->showMessage("New File");
     file_path = "";
     m_changed = false;

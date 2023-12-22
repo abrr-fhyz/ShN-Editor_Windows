@@ -18,9 +18,13 @@ CustomTextEdit::CustomTextEdit(QWidget *parent)
 
 void CustomTextEdit::keyPressEvent(QKeyEvent *event)
 {
-   if (event->key() == Qt::Key_Tab) {
+    if (event->key() == Qt::Key_Tab) {
         handletabpress();
-    } else {
+    }
+    else if(event->key() == Qt::Key_Return) {
+        handleEnterPress();
+    }
+    else {
         emit customKeyPress(event);
         QPlainTextEdit::keyPressEvent(event);
     }
@@ -54,25 +58,28 @@ void CustomTextEdit::autoIndent()
 void CustomTextEdit::handletabpress()
 {
     QTextCursor cursor = textCursor();
+    cursor.insertText("\t");
+//    //  cursor jeno text document er end e na thake
+//    if (!cursor.atEnd()) {
+//        QString currentLine = cursor.block().text();
 
-    //  cursor jeno text document er end e na thake
-    if (!cursor.atEnd()) {
-        QString currentLine = cursor.block().text();
+//        // RB er position ber korlam
+//        int rightBracketPos = currentLine.lastIndexOf(')');
+//        int rightBracePos = currentLine.lastIndexOf('}');
+//        int rightSquareBracketPos = currentLine.lastIndexOf(']');
 
-        // RB er position ber korlam
-        int rightBracketPos = currentLine.lastIndexOf(')');
-        int rightBracePos = currentLine.lastIndexOf('}');
-        int rightSquareBracketPos = currentLine.lastIndexOf(']');
+//        // max RB position
+//        int maxBracketPos = qMax(rightBracketPos, qMax(rightBracePos, rightSquareBracketPos));
 
-        // max RB position
-        int maxBracketPos = qMax(rightBracketPos, qMax(rightBracePos, rightSquareBracketPos));
-
-        if (maxBracketPos != -1) {
-            // erpor soray de max position e
-            cursor.setPosition(cursor.block().position() + maxBracketPos + 1);
-            setTextCursor(cursor);
-        }
-    }
+//        if (maxBracketPos != -1) {
+//            // erpor soray de max position e
+//            cursor.setPosition(cursor.block().position() + maxBracketPos + 1);
+//            setTextCursor(cursor);
+//        }
+//        else {
+//            cursor.insertText("    ");
+//        }
+//    }
 }
 
 int CustomTextEdit::lineNumberAreaWidth()
@@ -120,7 +127,7 @@ void CustomTextEdit::highlightCurrentLine()
     if (!isReadOnly()) {
         QTextEdit::ExtraSelection selection;
 
-        QColor lineColor = QColor(0x9BEDFF).lighter(110);
+        QColor lineColor = QColor(0x36454F);
 
         selection.format.setBackground(lineColor);
         selection.format.setProperty(QTextFormat::FullWidthSelection, true);
@@ -154,5 +161,71 @@ void CustomTextEdit::lineNumberAreaPaintEvent(QPaintEvent *event)
         top = bottom;
         bottom = top + qRound(blockBoundingRect(block).height());
         ++blockNumber;
+    }
+}
+
+int CustomTextEdit::indentationLevelOfCurrentLine()
+{
+    QTextCursor original = textCursor();
+    QString document = toPlainText();
+    moveCursorToStartOfLine();
+
+    int indentationLevel = 0;
+    int index = textCursor().position();
+    qDebug() << document.at(index) << '\n';
+
+    while(index < document.length()) {
+        if(document.at(index) == '\t') {
+            indentationLevel++;
+            index++;
+        }
+        else {
+            break;
+        }
+    }
+
+    setTextCursor(original);
+    return indentationLevel;
+}
+
+void CustomTextEdit::moveCursorToStartOfLine()
+{
+    QTextCursor cursor = textCursor();
+
+    cursor.movePosition(QTextCursor::StartOfLine);
+    setTextCursor(cursor);
+}
+
+void CustomTextEdit::insertTabs(int numTabs)
+{
+    for(int i = 0; i < numTabs; ++i) {
+        textCursor().insertText("\t");
+    }
+}
+
+bool CustomTextEdit::handleEnterPress()
+{
+    QString document = toPlainText();
+    int indexToLeftOfCursor = textCursor().position() - 1;
+
+    int currentIndent = indentationLevelOfCurrentLine();
+//    qDebug() << currentIndent << '\n';
+    QChar characterToLeftOfCursor = document.at(indexToLeftOfCursor);
+
+    if(characterToLeftOfCursor == '{') {
+        insertPlainText("\n");
+        insertTabs(currentIndent);
+        QTextCursor cursor = textCursor();
+        cursor.movePosition(QTextCursor::Up);
+        cursor.movePosition(QTextCursor::EndOfLine);
+        setTextCursor(cursor);
+        insertPlainText("\n");
+        insertTabs(currentIndent + 1);
+        return true;
+    }
+    else{
+        insertPlainText("\n");
+        insertTabs(currentIndent);
+        return true;
     }
 }

@@ -15,11 +15,17 @@ public:
 
     void lineNumberAreaPaintEvent(QPaintEvent *event);
     int lineNumberAreaWidth();
+    int indentationLevelOfCurrentLine();
+    void moveCursorToStartOfLine();
+    void insertTabs(int numTabs);
+    bool handleEnterPress();
+
 
 protected:
     void keyPressEvent(QKeyEvent *event) override;
     void resizeEvent(QResizeEvent* event) override;
     void autoIndent();
+
 
 signals:
     void customKeyPress(QKeyEvent *event);
@@ -30,7 +36,6 @@ private slots:
     void updateLineNumberAreaWidth(int newBlockCount);
     void highlightCurrentLine();
     void updateLineNumberArea(const QRect &rect, int dy);
-
 private:
     QWidget *lineNumberArea;
 };
