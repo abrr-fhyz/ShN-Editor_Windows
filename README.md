@@ -1,4 +1,4 @@
-# ShN-code
+# ShN-code (Windows OS)
 
 ShN Editor is a lightweight text editor developed using the Qt framework, designed for simplicity and ease of use. This editor comes with several features to enhance your coding experience, including syntax highlighting, an integrated terminal, and the ability to execute code with user-defined input.
 
@@ -27,6 +27,7 @@ To build and run ShN Editor:
 Open the project in Qt Creator or your preferred Qt development environment.
 Configure project settings if necessary.
 Build the project.
+PowerShell may throw an error while compilation. Configure PowerShell to include path to compiler executable in that scenario, and the issue will be resolved.
 Run the compiled executable.
 ## Dependencies
 Qt framework
