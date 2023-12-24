@@ -34,6 +34,8 @@ MainWindow::MainWindow(QWidget *parent)
     terminalTextEdit = new QPlainTextEdit(this);
     terminalTextEdit->setReadOnly(true);
     mainSplitter->addWidget(terminalTextEdit);
+    terminalTextEdit->setStyleSheet("background-color: black; color: white;"
+                                    "font: 11pt \"Code New Roman\";");
 
     terminalProcess = new QProcess(this);
 
@@ -44,7 +46,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     startTerminalProcess();
 
-    statusBar()->showMessage("Character: 0 Word: 0 Row: 0");
+    statusBar()->showMessage("Character: 0 Word: 0 Row: 1 Column: 1");
 
     connect(customTextEdit, &QPlainTextEdit::textChanged, this, &MainWindow::on_textEdit_textChanged);
     connect(customTextEdit, &QPlainTextEdit::textChanged, this, &MainWindow::updateCharacterCount);
@@ -54,11 +56,29 @@ MainWindow::MainWindow(QWidget *parent)
 }
 
 
+//PowerShell Commands
+bool outputflag = false;
 void MainWindow::terminalReadyRead()
 {
     QByteArray data = terminalProcess->readAll();
-    terminalTextEdit->insertPlainText(QString::fromUtf8(data));
-    qDebug() << QString::fromUtf8(data);
+    QString output = QString::fromUtf8(data);
+    QStringList outputLines = output.split('\n', Qt::SkipEmptyParts);
+
+    for (const QString& line : outputLines) {
+        //stop at beginning of next powershell prompt
+        if (line.contains("PS")) {
+            outputflag = false;
+        }
+        if (outputflag) {
+            terminalTextEdit->insertPlainText(line + "\n");
+            qDebug() << line;
+        }
+        //start if execution command
+        if (line.contains("./a")) {
+            terminalTextEdit->insertPlainText("<Output>\n");
+            outputflag = true;
+        }
+    }
 }
 
 void MainWindow::terminalProcessError(QProcess::ProcessError error)
@@ -68,45 +88,40 @@ void MainWindow::terminalProcessError(QProcess::ProcessError error)
 
 void MainWindow::startTerminalProcess()
 {
-    QString terminalExecutable = "/bin/bash"; // Use bash as the terminal executable
+    QString powerShellExecutable = "C:/Windows/System32/WindowsPowerShell/v1.0/powershell.exe"; //default location for powershell executable
 
-    if (!QFile::exists(terminalExecutable)) {
-        qDebug() << "Error: Terminal executable not found at " << terminalExecutable;
+    if (!QFile::exists(powerShellExecutable)) {
+        qDebug() << "Error: PowerShell executable not found at " << powerShellExecutable;
         return;
     }
 
-    terminalProcess->start(terminalExecutable, QStringList());
+    terminalProcess->start(powerShellExecutable, QStringList());
     if (!terminalProcess->waitForStarted()) {
-        qDebug() << "Error starting terminal process: " << terminalProcess->errorString();
-        QMessageBox::critical(this, "Error", "Failed to start terminal process.");
+        qDebug() << "Error starting PowerShell process: " << terminalProcess->errorString();
+        QMessageBox::critical(this, "Error", "Failed to start PowerShell process.");
     }
 }
+
 
 void MainWindow::runTerminalCommand(const QString &command, const QString &input)
 {
     if (terminalProcess->state() != QProcess::Running) {
-        qDebug() << "Error: Terminal process is not running.";
+        qDebug() << "Error: PowerShell process is not running.";
         return;
     }
 
     terminalProcess->setProcessChannelMode(QProcess::MergedChannels);
 
-    // Connect the signal for handling the input only once
-    static bool connected = false;
-    if (!connected) {
-        connect(customTextEdit, &CustomTextEdit::terminalInput, this, [this](const QString &input) {
-            terminalProcess->write((input + "\n").toUtf8());
-            terminalProcess->waitForBytesWritten();
-        });
-        connected = true;
-    }
-
-
-    QString commandWithInput = command + " <<< \"" + input + "\"";
-    terminalTextEdit->clear();
-    terminalProcess->write((commandWithInput + "\n").toUtf8());
+    //running the command line first in PowerShell and then putting in the input
+    QString Command = command + "\n";
+    QString Input= input + "\n";
+    terminalProcess->write(Command.toUtf8());
     terminalProcess->waitForBytesWritten();
+    terminalProcess->write(Input.toUtf8());
+    terminalProcess->waitForBytesWritten();
+
 }
+
 
 
 
@@ -216,16 +231,9 @@ void MainWindow::handleTextChanged()
 void MainWindow::handleKeyPress(QKeyEvent *event)
 {
 
-//        if (event->key() == Qt::Key_Return || event->key() == Qt::Key_Enter) {
-//        QString currentLine = customTextEdit->toPlainText().split('\n').last().trimmed();
-//        if (currentLine.startsWith("#include")) {
-//            // Append "<>" to the next line
-//            customTextEdit->insertPlainText("<>");
-//            return;
-//        }
- // }
+//PowerShell Equivalent of Input Intake
     QKeyEvent* key = static_cast<QKeyEvent*>(event);
-    if (key->key() == Qt::Key_F2) {
+        if (key->key() == Qt::Key_F2) {
         bool ok;
         QString input = QInputDialog::getMultiLineText(this, "Input", "Enter input:", "", &ok);
 
@@ -233,10 +241,12 @@ void MainWindow::handleKeyPress(QKeyEvent *event)
             // User provided input, construct the complete command without input redirection
             QFileInfo fileInfo(file_path);
             QString file_name = fileInfo.filePath();
-            QString command = "g++ \"" + file_name + "\" -o output && ./output";
-            runTerminalCommand(command, input);  // Pass input directly to the command
+            //QString command = "gcc " + file_name + " -o output && ./output";
+            QString PSScript= "g++ '"+ file_name + "' -o a\n./a";
+            runTerminalCommand(PSScript, input);  // Pass input directly to the command
         }
     }
+    
     if(key->key() == Qt::Key_Enter) {
         qDebug() << "Enter Pressed\n";
     }
@@ -245,7 +255,7 @@ void MainWindow::handleKeyPress(QKeyEvent *event)
     if (pressedText == "{") closingBracket = "}";
     else if (pressedText == "(") closingBracket = ")";
     else if (pressedText == "[") closingBracket = "]";
-
+    else if (pressedText == "\"") closingBracket = "\"";
 
     if (!closingBracket.isEmpty()) {
         customTextEdit->textCursor().insertText(closingBracket);
